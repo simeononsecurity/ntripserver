@@ -1840,6 +1840,11 @@ static int openserial(const char *tty, int blocksz, int baud) {
       baud = B230400;
       break;
 #endif
+#ifdef B921600
+    case 921600:
+      baud = B921600;
+      break;
+#endif
     default:
       fprintf(stderr, "WARNING: Baud settings not useful, using 19200\n");
       baud = B19200;
