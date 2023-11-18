@@ -1423,9 +1423,12 @@ static void send_receive_loop(sockettype sock, int outmode,
       nodata = 0;
 #ifdef WINDOWSVERSION
       time(&nodata_current);
-      if(difftime(nodata_current, nodata_begin) >= ALARMTIME)  {
-        sigalarm_received = 1;
-        fprintf(stderr, "ERROR: more than %d seconds no activity\n", ALARMTIME);
+      
+      if (outputmode != TCPIP) {
+          if (difftime(nodata_current, nodata_begin) >= ALARMTIME)  {
+              sigalarm_received = 1;
+              fprintf(stderr, "ERROR: more than %d seconds no activity\n", ALARMTIME);
+          }
       }
 #endif
     }
@@ -2040,9 +2043,9 @@ static void handle_alarm(int sig __attribute__((__unused__)))
 #else /* __GNUC__ */
 static void handle_alarm(int sig)
 #endif /* __GNUC__ */
-{
-  sigalarm_received = 1;
-  fprintf(stderr, "ERROR: more than %d seconds no activity\n", ALARMTIME);
+if (outputmode != TCPIP) {
+    sigalarm_received = 1;
+    fprintf(stderr, "ERROR: more than %d seconds no activity\n", ALARMTIME);
 }
 
 #ifdef __GNUC__
