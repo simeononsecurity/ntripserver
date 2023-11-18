@@ -2254,7 +2254,7 @@ usage(int rc, char *name)
   exit(rc);
 } /* usage */
 
-int outputmode;
+char* outputmode;
 
 /********************************************************************/
 /* signal handling                                                  */
