@@ -10,7 +10,7 @@ OPTS = -Wall -W
 endif
 
 ntripserver: ntripserver.c
-	$(CC) $(OPTS) $? -O3 -DNDEBUG -o $@ $(LIBS)
+	$(CC) $(OPTS) $? -o $@ $(LIBS)
 
 debug: ntripserver.c
 	$(CC) $(OPTS) $? -g -o ntripserver $(LIBS)
