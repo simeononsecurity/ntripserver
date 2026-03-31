@@ -1,5 +1,5 @@
 /*
- * $Id: ntripserver.c 9812 2022-08-23 14:30:54Z stoecker $
+ * $Id: ntripserver.c 10685 2025-07-01 20:17:30Z stuerze $
  *
  * Copyright (c) 2003...2019
  * German Federal Agency for Cartography and Geodesy (BKG)
@@ -37,8 +37,8 @@
  */
 
 /* SVN revision and version */
-static char revisionstr[] = "$Revision: 9812 $";
-static char datestr[] = "$Date: 2022-08-23 14:30:54 +0000 (Tue, 23 Aug 2022) $";
+static char revisionstr[] = "$Revision: 10685 $";
+static char datestr[] = "$Date: 2025-07-01 20:17:30 +0000 (Tue, 01 Jul 2025) $";
 
 #include <ctype.h>
 #include <errno.h>
@@ -60,7 +60,7 @@ static char datestr[] = "$Date: 2022-08-23 14:30:54 +0000 (Tue, 23 Aug 2022) $";
   #include <windows.h>
   typedef SOCKET sockettype;
   typedef u_long in_addr_t;
-  typedef size_t socklen_t;
+  typedef int socklen_t;
   typedef u_short uint16_t;
 #else
 typedef int sockettype;
@@ -494,21 +494,27 @@ int main(int argc, char **argv) {
 
   /*** proxy server handling ***/
   if (*proxyhost) {
-    inhost = proxyhost;
-    inport = proxyport;
-    i = snprintf(szSendBuffer, sizeof(szSendBuffer), "http://%s:%d", casterinhost, casterinport);
-    if ((i > SZ) || (i < 0)) {
-      fprintf(stderr,
-          "ERROR: Destination caster name/port to long - length = %d (max: %d)\n",
-          i, SZ);
-      exit(0);
+    // Input
+    if (casterinhost == 0 || (strstr(casterinhost, "127.0.0.1") || strstr(casterinhost, "localhost"))) {
+      inhost = casterinhost;
+      inport = casterinport;
     } else {
-      strncpy(get_extension, szSendBuffer, (size_t) i);
-      strcpy(szSendBuffer, "");
-      i = 0;
+      inhost = proxyhost;
+      inport = proxyport;
+      i = snprintf(szSendBuffer, sizeof(szSendBuffer), "http://%s:%d", casterinhost, casterinport);
+      if ((i > SZ) || (i < 0)) {
+        fprintf(stderr,
+            "ERROR: Destination caster name/port to long - length = %d (max: %d)\n",
+            i, SZ);
+        exit(0);
+      } else {
+        strncpy(get_extension, szSendBuffer, (size_t) i);
+        strcpy(szSendBuffer, "");
+        i = 0;
+      }
     }
-    if (strstr(casterouthost, "127.0.0.1") ||
-        strstr(casterouthost, "localhost")) {
+    // Output
+    if (strstr(casterouthost, "127.0.0.1") || strstr(casterouthost, "localhost")) {
       outhost = casterouthost;
       outport = casteroutport;
     }
@@ -904,11 +910,17 @@ int main(int argc, char **argv) {
       if (outputmode == TCPIP) {
         // Forcefully attaching socket to the local port
         int opt = 1;
-        if (setsockopt(socket_tcp, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-                                                      &opt, sizeof(opt)))  {
+#ifndef WINDOWSVERSION
+        if (setsockopt(socket_tcp, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, (void *)&opt, sizeof(opt)))  {
             perror("ERROR: setsockopt");
             break;
         }
+#else
+        if (setsockopt(socket_tcp, SOL_SOCKET, SO_REUSEADDR, (void *)&opt, sizeof(opt)))  {
+            perror("ERROR: setsockopt");
+            break;
+        }
+#endif
       }
       memset((char*) &caster, 0x00, sizeof(caster));
       memcpy(&caster.sin_addr, he->h_addr, (size_t)he->h_length);
@@ -1838,11 +1850,6 @@ static int openserial(const char *tty, int blocksz, int baud) {
 #ifdef B230400
     case 230400:
       baud = B230400;
-      break;
-#endif
-#ifdef B921600
-    case 921600:
-      baud = B921600;
       break;
 #endif
     default:
